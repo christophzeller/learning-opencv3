@@ -2,9 +2,18 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <iostream>
+#include <vector>
 
-using std::cout; using std::cin; using std::endl;
+using std::cout; using std::cin; using std::endl; using std::vector;
 using namespace cv;
+
+void show_image_in_window(const char* window_name, const Mat& image)
+{
+    namedWindow(window_name, WINDOW_AUTOSIZE);
+    imshow(window_name, image);
+    waitKey(0);
+    destroyWindow(window_name);
+}
 
 /* 1. This exercise will accustom you to the idea of many functions taking matrix
 types. Create a two-dimensional matrix with three channels of type byte with
@@ -120,16 +129,55 @@ void _5(char *filename)
 6. Create a mask using cv::compare(). Load a real image. Use cv::split() to split
 the image into red, green, and blue images.
 a. Find and display the green image.
-b. Clone this green plane image twice (call these clone1 and clone2).
+b. Clone this green plane image twice (call these clone1 and mask).
 c. Find the green plane’s minimum and maximum value.
 d. Set clone1’s values to thresh = (unsigned char)((maximum - minimum)/
 2.0).
-e. Set clone2 to 0 and use cv::compare (green_image, clone1, clone2,
-cv::CMP_GE). Now clone2 will have a mask of where the value exceeds
+e. Set mask to 0 and use cv::compare (green_image, clone1, mask,
+cv::CMP_GE). Now mask will have a mask of where the value exceeds
 thresh in the green image.
 f. Finally, use cv::subtract (green_image,thresh/2, green_image,
-clone2) and display the results.
+mask) and display the results.
 */
+
+void _6(char* filename)
+{
+    const char* window_name = "ch5_6";
+    Mat image = imread(filename, -1);
+    if (image.empty())
+        return;
+        
+    vector<Mat> channels;
+    split(image, channels);
+    
+    cout << channels.size() << " channels split" << endl;
+    
+    show_image_in_window("Raw", image);
+    
+    double min;
+    double max;
+    
+    minMaxLoc(channels[1], &min, &max, nullptr, nullptr);
+    
+    auto threshold = (unsigned char)((max - min) / 2.0);
+    
+    cout << "threshold: " << (int)threshold << endl;
+    
+    Mat clone1 = channels[1].clone();
+    clone1.setTo(threshold);
+    
+//    show_image_in_window("G-mask", clone1);
+    Mat mask = channels[1].clone();
+    mask.setTo(0);
+    
+    compare(channels[1], clone1, mask, CMP_GE);
+    subtract(channels[1], threshold/2, channels[1], mask);
+
+    show_image_in_window("mask", mask);
+    show_image_in_window("G-channel masked", channels[1]);
+    show_image_in_window("Result full", image);
+}
+
 
 
 
@@ -137,13 +185,17 @@ int main(int argc, char** argv)
 {
 //    _1();
 //    _2();
-    _4();
-    /*if (argc < 2)
+//    _4();
+    if (argc < 2)
     {
         char* filename = "../assets/penguin.jpg";
-        _5(filename);
+        //_5(filename);
+        _6(filename);
     }
     else
-        _5(argv[1]);
-    return 0;*/
+    {
+        //_5(argv[1]);
+        _6(argv[1]);
+    }
+    return 0;
 }
