@@ -67,6 +67,24 @@ the image.
 // note to self: height map of a pyramid, i guess.
 */
 
+void _4()
+{
+    const char* window_name = "ch5_4";
+    Mat image = Mat::zeros(210, 210, CV_8UC1); 
+    
+    for (auto i = 0; i < 11; ++i)
+    {
+        Rect r (10*i, 10*i, 210-20*i, 210-20*i);
+        Mat roi(image, r);
+        roi.setTo(20*i);
+    }
+    
+    namedWindow(window_name, WINDOW_AUTOSIZE);
+    imshow(window_name, image);
+    waitKey(0);
+    destroyWindow(window_name);
+}
+
 /*
 5. Use multiple headers for one image. Load an image that is at least 100 × 100.
 Create two additional headers that are ROIs where width = 20 and the height =
@@ -93,7 +111,6 @@ void _5(char *filename)
     
     namedWindow(window_name, WINDOW_AUTOSIZE);
     imshow(window_name, image);
-    
     waitKey(0);
     destroyWindow(window_name);
     
@@ -120,12 +137,13 @@ int main(int argc, char** argv)
 {
 //    _1();
 //    _2();
-    if (argc < 2)
+    _4();
+    /*if (argc < 2)
     {
         char* filename = "../assets/penguin.jpg";
         _5(filename);
     }
     else
         _5(argv[1]);
-    return 0;
+    return 0;*/
 }
