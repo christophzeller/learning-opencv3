@@ -15,6 +15,16 @@ image when clicking anywhere within the three-image display.
 using namespace cv;
 using std::cout; using std::endl;
 
+void on_click(int event, int x, int y, int flags, void* image)
+{
+    if (event != EVENT_LBUTTONDOWN)
+        return;
+        
+    Mat* p_image = static_cast<Mat*>(image);
+    auto pixel = p_image->at<Vec3b>(y, x);
+    cout << pixel << endl;
+}
+
 int main(int argc, char** argv)
 {
     if (argc != 2)
@@ -31,6 +41,7 @@ int main(int argc, char** argv)
     }
     
     namedWindow("8.2");
+    setMouseCallback("8.2", on_click, &image);
     imshow("8.2", image);
     waitKey(0);
     destroyWindow("8.2");
