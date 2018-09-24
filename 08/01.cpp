@@ -59,6 +59,22 @@ void show_composite(Images& stuff)
     stuff.grayscale.copyTo(roi_gs);
     stuff.canny.copyTo(roi_canny);
     
+    /*putText(
+        cv::Mat& img, // Image to be drawn on
+        const string& text, // write this (often from cv::format)
+        cv::Point origin, // Upper-left corner of text box
+        int fontFace, // Font (e.g., cv::FONT_HERSHEY_PLAIN)
+        double fontScale, // size (a multiplier, not "points"!)
+        cv::Scalar color, // Color, RGB form
+        int thickness = 1, // Thickness of line
+        int lineType = 8, // Connectedness, 4 or 8
+        bool bottomLeftOrigin = false // true='origin at lower left'
+    );*/
+    
+    putText(roi_raw, "base image", Point{0, 25}, FONT_HERSHEY_PLAIN, 1.25, Scalar {170, 10, 200}, 2);
+    putText(roi_gs, "grayscale", Point{0, 25}, FONT_HERSHEY_PLAIN, 1.25, Scalar {170, 10, 200}, 2);
+    putText(roi_canny, "canny edge detection", Point{0, 25}, FONT_HERSHEY_PLAIN, 1.25, Scalar {170, 10, 200}, 2);
+    
     imshow(composite_window, composite_image);
 
 }
