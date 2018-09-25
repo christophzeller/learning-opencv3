@@ -15,14 +15,84 @@ were found in that bin range. Do this for each color channel, BGR.
 */
 
 #include <iostream>
+#include <string>
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 
 using namespace cv;
-using std::cout; using std::endl;
+using std::cout; using std::endl; using std::string;
 
-void on_mouse_pressed(int event, int x, int y, int flags, void *userdata)
+class HistogramViewer
+{
+public:
+    HistogramViewer(string);
+    virtual ~HistogramViewer();
+    
+    void show();
+    static void on_mouse_event(int event, int x, int y, int flags, void *userdata);
+    
+private:
+    Mat image;
+    Mat display_image;
+    Mat color_histogram_region;
+    string filename;
+    
+    void calculate_bins();
+    void show_histogram();
+    void on_mouse_pressed(int event, int x, int y, int flags, void *userdata);
+    void on_mouse_released(int event, int x, int y, int flags, void *userdata);
+};
+
+HistogramViewer::HistogramViewer(string filename) :
+ filename(filename)
+{
+    namedWindow("Image");
+    setMouseCallback("Image", HistogramViewer::on_mouse_event, this);
+}
+
+HistogramViewer::~HistogramViewer()
+{
+    destroyWindow("Image");
+}
+
+void HistogramViewer::show()
+{
+    image = imread(filename);
+    display_image = image.clone();
+    color_histogram_region;
+    
+    imshow("Image", image);
+    
+    waitKey(0);
+}
+
+void HistogramViewer::on_mouse_pressed(int event, int x, int y, int flags, void *userdata)
+{
+    cout << "button down fired..." << endl;
+}
+
+void HistogramViewer::on_mouse_released(int event, int x, int y, int flags, void *userdata)
+{    
+    cout << "button up fired..." << endl;
+}
+
+void HistogramViewer::on_mouse_event(int event, int x, int y, int flags, void *userdata)
+{
+    HistogramViewer* p = static_cast<HistogramViewer*>(userdata);
+    switch (event)
+    {
+    case EVENT_LBUTTONDOWN:
+        p->on_mouse_pressed(event, x, y, flags, userdata);
+    break;
+    case EVENT_LBUTTONUP:
+        p->on_mouse_released(event, x, y, flags, userdata);
+    break;
+    }
+}
+
+
+/*void on_mouse_pressed(int event, int x, int y, int flags, void *userdata)
 {
     cout << "button down fired..." << endl;
 }
@@ -45,16 +115,8 @@ void on_mouse_event(int event, int x, int y, int flags, void *userdata)
     }
 }
 
-void calculate_histogram_bins();
-void draw_histogram();
-
-int main(int argc, char** argv)
+void no_class(char** argv)
 {
-    if (argc != 2)
-    {
-        cout << "expects exactly one argument: filename" << endl;
-    }
-    
     Mat image = imread(argv[1]);
     Mat display_image = image.clone();
     Mat color_histogram_region;
@@ -66,6 +128,18 @@ int main(int argc, char** argv)
     
     waitKey(0);
     destroyWindow("Image");
+}*/
+
+int main(int argc, char** argv)
+{
+    if (argc != 2)
+    {
+        cout << "expects exactly one argument: filename" << endl;
+    }
+    
+    //no_class(argv);
+    HistogramViewer v { argv[1] };
+    v.show();
 
     return 0;
 }
