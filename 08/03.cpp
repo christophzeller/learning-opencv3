@@ -48,6 +48,7 @@ private:
     histogram_bins calculate_bins(const Mat&);
     void show_histogram();
     void draw_graph(const histogram_bins&);
+    void add_graph_labels(Mat&, int);
     void on_mouse_pressed(int event, int x, int y, int flags, void *userdata);
     void on_mouse_released(int event, int x, int y, int flags, void *userdata);
     void debug_output(ostream&, const histogram_bins&);
@@ -72,7 +73,6 @@ void HistogramViewer::show()
 {
     image = imread(filename);
     display_image = image.clone();
-    //color_histogram_region;
     
     imshow(image_window_name, display_image);
     
@@ -82,51 +82,94 @@ void HistogramViewer::show()
 void HistogramViewer::show_histogram()
 {
     Mat color_histogram_region (image, mouse_drag_region);
-    rectangle(display_image, mouse_drag_region, Scalar(175, 25, 220));
+    rectangle(display_image, mouse_drag_region, Scalar(175, 25, 225));
     imshow(image_window_name, display_image);
     
-    auto bins = calculate_bins(color_histogram_region);
+    auto channel_data = calculate_bins(color_histogram_region);
     
     //debug_output(cout, bins);
-    draw_graph(bins);
+    draw_graph(channel_data);
 }
 
-void HistogramViewer::draw_graph(const histogram_bins& bins)
+void HistogramViewer::draw_graph(const histogram_bins& channel_data)
 {
-    // TODO: normalize heights
-    
-    // height: 25 + maximum in any bin
-    // width: 20 * 8 bins
-    // type: 3 channel byte
     Mat graph = Mat::zeros(500, 500, CV_8UC(3));
-    vector<Scalar> bar_colors = { Scalar(0, 0, 200), Scalar(0, 200, 0), Scalar(200, 0, 0)};
+    vector<Scalar> bar_colors = { 
+                                    Scalar(200, 0, 0), 
+                                    Scalar(0, 200, 0), 
+                                    Scalar(0, 0, 200) 
+                                };
     
-    auto total_pixels = 0;
-    for (auto pixel_count : bins[0])
+    // find max value for y axis
+    int max_count = 0;
+    for (auto channel : channel_data)
     {
-        total_pixels += pixel_count;
+        for (auto pixel_count : channel)
+        {
+            if (pixel_count > max_count)
+                max_count = pixel_count;
+        }
     }
     
+    // draw bars
     for (auto i = 0; i < 3; ++i)
     {
-        const auto& current_channel = bins[i];
+        const auto& current_channel = channel_data[i];
         const auto& current_bar_color = bar_colors[i];
         int offset_x = 0 + (5 * i);
         
         for (auto j = 0; j < 8; ++j)
         {
             const auto& bin_value = current_channel[j];
-            offset_x += 50;
-            //cout << "drawing @ " << offset_x << " in " << current_bar_color << endl;
-            double bar_scale = (double)bin_value / (double)total_pixels;
+            double bar_scale = (double)bin_value / (double)max_count;
             auto bar_height = 300 * bar_scale;
-            cout << bar_height << endl;
-            
-            line(graph, Point(offset_x, 400 - bar_height), Point(offset_x, 400), current_bar_color, 3);
+
+            offset_x += 50;            
+            line(graph, 
+                Point(offset_x, 350 - bar_height), 
+                Point(offset_x, 350), 
+                current_bar_color, 
+                3);
         }
-        
     }
     
+    add_graph_labels(graph, max_count);
+    
+    imshow(graph_window_name, graph);
+}
+
+void HistogramViewer::add_graph_labels(Mat& graph, int max_count)
+{
+    Scalar magenta(175, 25, 225);
+
+    // x axis labels
+    putText(
+            graph, 
+            to_string(max_count), 
+            Point(0, 40), 
+            FONT_HERSHEY_PLAIN, 
+            0.9, 
+            magenta);
+            
+    putText(
+            graph, 
+            to_string(max_count / 2), 
+            Point(0, 190), 
+            FONT_HERSHEY_PLAIN, 
+            0.9, 
+            magenta, 
+            1);
+            
+    putText(
+            graph, 
+            "0", 
+            Point(0, 350), 
+            FONT_HERSHEY_PLAIN, 
+            0.9, 
+            magenta, 
+            1);
+            
+    // bin ranges / x axis labels
     for (auto i = 0; i < 8; ++i)
     {
         string bin_range;
@@ -136,32 +179,38 @@ void HistogramViewer::draw_graph(const histogram_bins& bins)
         putText(
             graph, 
             bin_range, 
-            Point(25 + 50 * i, 450 + (i%2 * 25)), // Upper-left corner of text box
-            FONT_HERSHEY_PLAIN, // Font (e.g., cv::FONT_HERSHEY_PLAIN)
-            0.9, // size (a multiplier, not "points"!)
-            Scalar(175, 25, 225), // Color, RGB form
-            1);
+            Point(25 + 50 * i, 400 + (i%2 * 25)), 
+            FONT_HERSHEY_PLAIN, 
+            0.9, 
+            magenta);
     }
     
-    imshow(graph_window_name, graph);
+    // axis descriptors
+    putText(
+            graph, 
+            "RGB Intensity", 
+            Point(200, 450), 
+            FONT_HERSHEY_PLAIN, 
+            1.0, 
+            magenta);
     
-    // for each color
-    //    set color
-    //    calculate offset
-    //    for each range
-    //        calculate offset
-    //        draw label
-    //        draw bar depending on value in color
+    putText(
+            graph, 
+            "Pixel Count", 
+            Point(10, 10), 
+            FONT_HERSHEY_PLAIN, 
+            1.0, 
+            magenta);
 }
 
-void HistogramViewer::debug_output(ostream& os, const histogram_bins& bins)
+void HistogramViewer::debug_output(ostream& os, const histogram_bins& channel_data)
 {
     int i = 0;
-    for (const auto& color_bin : bins)
+    for (const auto& current_channel : channel_data)
     {
         os << "channel " << i << endl;
         int j = 0;
-        for (const auto& value : color_bin)
+        for (const auto& value : current_channel)
         {
             os << j*32 << "-" << (j+1)*32-1 << ": " << value << endl;
             ++j;
@@ -180,7 +229,6 @@ HistogramViewer::histogram_bins HistogramViewer::calculate_bins(const Mat& regio
     
     for (MatConstIterator_<Vec3b> it = region.begin<Vec3b>(); it != region.end<Vec3b>(); ++it)
     {
-        //cout << *it << endl;
         Vec3b v = *it;
         auto b = v[0], g = v[1], r = v[2];
         
@@ -199,14 +247,12 @@ HistogramViewer::histogram_bins HistogramViewer::calculate_bins(const Mat& regio
 void HistogramViewer::on_mouse_pressed(int event, int x, int y, int flags, void *userdata)
 {
     image.copyTo(display_image);
-    //cout << "button down fired..." << endl;
     mouse_drag_region.x = x;
     mouse_drag_region.y = y;
 }
 
 void HistogramViewer::on_mouse_released(int event, int x, int y, int flags, void *userdata)
 {    
-    //cout << "button up fired..." << endl;
     // TODO: this only supports topLeft->bottomRight dragging for now. exceptions! yay!
     mouse_drag_region.height = y - mouse_drag_region.y;
     mouse_drag_region.width = x - mouse_drag_region.x;
@@ -230,45 +276,6 @@ void HistogramViewer::on_mouse_event(int event, int x, int y, int flags, void *u
     }
 }
 
-
-/*void on_mouse_pressed(int event, int x, int y, int flags, void *userdata)
-{
-    cout << "button down fired..." << endl;
-}
-
-void on_mouse_released(int event, int x, int y, int flags, void *userdata)
-{    
-    cout << "button up fired..." << endl;
-}
-
-void on_mouse_event(int event, int x, int y, int flags, void *userdata)
-{
-    switch (event)
-    {
-    case EVENT_LBUTTONDOWN:
-        on_mouse_pressed(event, x, y, flags, userdata);
-    break;
-    case EVENT_LBUTTONUP:
-        on_mouse_released(event, x, y, flags, userdata);
-    break;
-    }
-}
-
-void no_class(char** argv)
-{
-    Mat image = imread(argv[1]);
-    Mat display_image = image.clone();
-    Mat color_histogram_region;
-    
-    namedWindow("Image");
-    setMouseCallback("Image", on_mouse_event);
-    
-    imshow("Image", image);
-    
-    waitKey(0);
-    destroyWindow("Image");
-}*/
-
 int main(int argc, char** argv)
 {
     if (argc != 2)
@@ -276,7 +283,6 @@ int main(int argc, char** argv)
         cout << "expects exactly one argument: filename" << endl;
     }
     
-    //no_class(argv);
     HistogramViewer v { argv[1] };
     v.show();
 
